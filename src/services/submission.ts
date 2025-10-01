@@ -1,13 +1,20 @@
 import pool from '../config/db';
 import { Submission } from '../models/submission';
+import { broadcastNotification } from '../services/websocket';
+import { createNotification } from '../services/notification';
 
 export async function createSubmission(submission: Omit<Submission, 'id' | 'created_at' | 'status'>, userId: number): Promise<Submission> {
-  const { project_id, content } = submission;
   const result = await pool.query(
     'INSERT INTO submissions (project_id, content, status, created_by) VALUES ($1, $2, $3, $4) RETURNING *',
-    [project_id, content, 'pending', userId]
+    [submission.project_id, submission.content, 'pending', userId]
   );
-  return result.rows[0];
+  const newSubmission = result.rows[0];
+  const members = await pool.query('SELECT user_id FROM project_members WHERE project_id = $1', [submission.project_id]);
+  members.rows.forEach(async (member: any) => {
+    await createNotification(member.user_id, 'new_submission', `New submission in project ${submission.project_id}`);
+    broadcastNotification(member.user_id, 'new_submission', `New submission in project ${submission.project_id}`);
+  });
+  return newSubmission;
 }
 
 export async function getSubmissionsByProject(projectId: number, userId: number): Promise<Submission[]> {
@@ -43,3 +50,4 @@ export async function deleteSubmission(id: number, userId: number): Promise<void
   );
   if (result.rowCount === 0) throw new Error('Submission not found or user not authorized');
 }
+

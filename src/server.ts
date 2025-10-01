@@ -5,6 +5,10 @@ import userRoutes from './routes/users';
 import projectRoutes from './routes/projects';
 import submissionRoutes from './routes/submissions';
 import commentRoutes from './routes/comment';
+import http from 'http';
+import { setupWebSocket } from './services/websocket';
+import notificationRoutes from './routes/notifications';
+import statsRoutes from './routes/stats';
 
 const app = express();
 app.use(express.json());
@@ -14,6 +18,11 @@ app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/submissions', commentRoutes);
+
+const server = http.createServer(app);
+setupWebSocket(server);
+app.use('/api/users', notificationRoutes);
+app.use('/api/projects', statsRoutes);
 
 app.get('/health', async (req: Request, res: Response) => {
   try {
