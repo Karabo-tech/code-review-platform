@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { createSubmission, getSubmissionsByProject, getSubmission, updateSubmissionStatus, deleteSubmission } from '../services/submission';
 import { authenticateToken, restrictTo } from '../middleware/auth';
 import { body, param, validationResult } from 'express-validator';
+import { approveSubmission, requestChanges, getReviewHistory } from '../services/review';
+
 
 const router = Router();
 
@@ -65,6 +67,33 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
   try {
     await deleteSubmission(parseInt(req.params.id), req.user!.id);
     res.json({ message: 'Submission deleted' });
+  } catch (error) {
+    res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+router.post('/:id/approve', authenticateToken, restrictTo('Reviewer'), async (req: Request, res: Response) => {
+  try {
+    const submission = await approveSubmission(parseInt(req.params.id), req.user!.id);
+    res.json(submission);
+  } catch (error) {
+    res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+router.post('/:id/request-changes', authenticateToken, restrictTo('Reviewer'), async (req: Request, res: Response) => {
+  try {
+    const submission = await requestChanges(parseInt(req.params.id), req.user!.id);
+    res.json(submission);
+  } catch (error) {
+    res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+router.get('/:id/reviews', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const history = await getReviewHistory(parseInt(req.params.id), req.user!.id);
+    res.json(history);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
   }
