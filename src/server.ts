@@ -9,6 +9,7 @@ import http from 'http';
 import { setupWebSocket } from './services/websocket';
 import notificationRoutes from './routes/notifications';
 import statsRoutes from './routes/stats';
+import { errorHandler } from './middleware/error';
 
 const app = express();
 app.use(express.json());
@@ -23,6 +24,7 @@ const server = http.createServer(app);
 setupWebSocket(server);
 app.use('/api/users', notificationRoutes);
 app.use('/api/projects', statsRoutes);
+app.use(errorHandler);
 
 app.get('/health', async (req: Request, res: Response) => {
   try {
